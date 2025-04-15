@@ -1,0 +1,115 @@
+-- GUI: Multi Spawn + Play + Copy Script (FINAL FIX)
+-- By @TheMugenKing
+
+local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
+local player = Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+
+-- Inisialisasi Spawn List
+getgenv().SpawnList = getgenv().SpawnList or {}
+
+-- GUI Setup
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "MultiSpawnGUI"
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 280, 0, 200)
+frame.Position = UDim2.new(0.5, -140, 0.5, -100)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
+
+local function createButton(text, posY, callback)
+    local btn = Instance.new("TextButton", frame)
+    btn.Size = UDim2.new(1, -20, 0, 40)
+    btn.Position = UDim2.new(0, 10, 0, posY)
+    btn.Text = text
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 14
+    btn.MouseButton1Click:Connect(callback)
+end
+
+-- Tombol: Set Spawn Modifier (Tambah)
+createButton("Set Spawn Modifier (Tambah)", 10, function()
+    table.insert(getgenv().SpawnList, hrp.Position)
+    StarterGui:SetCore("SendNotification", {
+        Title = "Spawn Ditambahkan!",
+        Text = "Total spawn: " .. tostring(#getgenv().SpawnList),
+        Duration = 3
+    })
+end)
+
+-- Tombol: Play / Mulai Semua Spawn (Teleport urutan)
+createButton("Play / Mulai Semua Spawn", 60, function()
+    if #getgenv().SpawnList == 0 then
+        StarterGui:SetCore("SendNotification", {
+            Title = "Gagal!",
+            Text = "Belum ada posisi spawn.",
+            Duration = 3
+        })
+        return
+    end
+
+    for i, pos in ipairs(getgenv().SpawnList) do
+        task.wait(0.4)
+        hrp.CFrame = CFrame.new(pos)
+    end
+
+    StarterGui:SetCore("SendNotification", {
+        Title = "Selesai!",
+        Text = "Sudah teleport ke semua posisi spawn.",
+        Duration = 3
+    })
+end)
+
+-- Tombol: Copy Script (Gabungan Spawn + Play)
+createButton("Copy Script (Semua Spawn)", 110, function()
+    if not getgenv().SpawnList or #getgenv().SpawnList == 0 then
+        StarterGui:SetCore("SendNotification", {
+            Title = "Gagal Copy",
+            Text = "SpawnList kosong!",
+            Duration = 3
+        })
+        return
+    end
+
+    local scriptHeader = [[
+-- Auto-Generated Script by @TheMugenKing
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local hrp = player.Character:WaitForChild("HumanoidRootPart")
+
+local SpawnList = {
+]]
+
+    local positionsCode = ""
+    for _, pos in ipairs(getgenv().SpawnList) do
+        positionsCode = positionsCode .. string.format("    Vector3.new(%.2f, %.2f, %.2f),\n", pos.X, pos.Y, pos.Z)
+    end
+
+    local scriptFooter = [[}
+
+for i, pos in ipairs(SpawnList) do
+    task.wait(0.4)
+    hrp.CFrame = CFrame.new(pos)
+end
+]]
+
+    local finalScript = scriptHeader .. positionsCode .. scriptFooter
+
+    if setclipboard then
+        setclipboard(finalScript)
+        StarterGui:SetCore("SendNotification", {
+            Title = "Script Disalin!",
+            Text = "Gabungan script telah dicopy.",
+            Duration = 3
+        })
+    else
+        warn("setclipboard tidak tersedia di executor ini.")
+    end
+end)
